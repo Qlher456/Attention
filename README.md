@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/f81ccdd0-5f1d-429d-8a1c-6876441ab492)# Attention
+# Attention
 
 # CNN.py
 CNN.py是使用基础cnn网络在Cifar10数据集上迭代100次的文件
@@ -33,10 +33,43 @@ Epoch [100/100] Train Loss: 0.1969, Train Acc: 92.28% Test Loss: 1.9651, Test Ac
 
 ![training_plot](https://github.com/user-attachments/assets/241774b2-29a6-4410-b49a-108931424047)
 
+
+# Self-Attention.py
+
+Self-Attention.py是在基础cnn网络中引入自注意力机制在Cifar10数据集上迭代100次的文件
+
+训练环境同上
+
+Epoch [1/100] Train Loss: 1.5294, Train Acc: 44.27% Test Loss: 1.1464, Test Acc: 58.42%
+
+Epoch [10/100] Train Loss: 0.3852, Train Acc: 86.20% Test Loss: 0.7361, Test Acc: 77.08%
+
+Epoch [20/100] Train Loss: 0.2026, Train Acc: 92.67% Test Loss: 0.9745, Test Acc: 77.55%
+
+Epoch [30/100] Train Loss: 0.1569, Train Acc: 94.39% Test Loss: 1.2330, Test Acc: 76.77%
+
+Epoch [40/100] Train Loss: 0.1439, Train Acc: 95.04% Test Loss: 1.5118, Test Acc: 75.73%
+
+Epoch [50/100] Train Loss: 0.1224, Train Acc: 95.81% Test Loss: 1.4674, Test Acc: 76.74%
+
+Epoch [60/100] Train Loss: 0.1187, Train Acc: 95.91% Test Loss: 1.5973, Test Acc: 76.51%
+
+Epoch [70/100] Train Loss: 0.1163, Train Acc: 96.02% Test Loss: 1.6436, Test Acc: 77.22%
+
+Epoch [80/100] Train Loss: 0.1047, Train Acc: 96.54% Test Loss: 1.7462, Test Acc: 76.69%
+
+Epoch [90/100] Train Loss: 0.0980, Train Acc: 96.72% Test Loss: 1.7892, Test Acc: 76.37%
+
+Epoch [100/100] Train Loss: 0.0909, Train Acc: 97.05% Test Loss: 1.7741, Test Acc: 77.09%
+
+![image](https://github.com/user-attachments/assets/f2951def-11aa-4867-8632-da7b48b81165)
+
+
 CPU使用情况
 
 ![image](https://github.com/user-attachments/assets/bab9aecb-106f-4257-bb3d-e9a8e93a03be)
 
+GPU使用情况
 
-
+![image](https://github.com/user-attachments/assets/0bbc0718-a08a-4f72-b83f-0298c2e1742f)
 
