@@ -1,4 +1,4 @@
-# Attention
+![image](https://github.com/user-attachments/assets/f81ccdd0-5f1d-429d-8a1c-6876441ab492)# Attention
 
 # CNN
 CNN.py是使用基础cnn网络在Cifar10数据集上迭代100次的文件
@@ -32,6 +32,11 @@ Epoch [90/100] Train Loss: 0.2058, Train Acc: 91.91% Test Loss: 1.8556, Test Acc
 Epoch [100/100] Train Loss: 0.1969, Train Acc: 92.28% Test Loss: 1.9651, Test Acc: 72.11%
 
 ![training_plot](https://github.com/user-attachments/assets/241774b2-29a6-4410-b49a-108931424047)
+
+CPU使用情况
+
+![image](https://github.com/user-attachments/assets/bab9aecb-106f-4257-bb3d-e9a8e93a03be)
+
 
 
 
