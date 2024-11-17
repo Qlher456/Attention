@@ -1,6 +1,6 @@
 ![image](https://github.com/user-attachments/assets/f81ccdd0-5f1d-429d-8a1c-6876441ab492)# Attention
 
-# CNN
+# CNN.py
 CNN.py是使用基础cnn网络在Cifar10数据集上迭代100次的文件
 
 使用ACC评价标准和交叉熵损失函数
