@@ -64,12 +64,6 @@ Epoch [100/100] Train Loss: 0.0909, Train Acc: 97.05% Test Loss: 1.7741, Test Ac
 
 ![image](https://github.com/user-attachments/assets/f2951def-11aa-4867-8632-da7b48b81165)
 
+# Multi-Head Attention.py
 
-CPU使用情况
-
-![image](https://github.com/user-attachments/assets/bab9aecb-106f-4257-bb3d-e9a8e93a03be)
-
-GPU使用情况
-
-![image](https://github.com/user-attachments/assets/0bbc0718-a08a-4f72-b83f-0298c2e1742f)
 
