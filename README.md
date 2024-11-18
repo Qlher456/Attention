@@ -1,3 +1,189 @@
+# 注意力机制
+
+注意力机制案例：1)看人-->看脸；2)看文章-->看标题；3)看段落-->看开头。
+注意力机制其实是源自于人对于外部信息的处理能力。由于人每一时刻接受的信息都是无比的庞大且复杂，远远超过人脑的处理能力，因此人在处理信息的时候，会将注意力放在需要关注的信息上，对于其他无关的外部信息进行过滤，这种处理方式被称为注意力机制。
+查询（Query）： 指的是查询的范围，自主提示，即主观意识的特征向量
+键（Key）： 指的是被比对的项，非自主提示，即物体的突出特征信息向量
+值（Value） ：则是代表物体本身的特征向量，通常和Key成对出现
+注意力机制是通过Query与Key的注意力汇聚（给定一个 Query，计算Query与 Key的相关性，然后根据Query与Key的相关性去找到最合适的 Value）实现对Value的注意力权重分配，生成最终的输出结果。
+
+![image](https://github.com/user-attachments/assets/5d7d99b7-a195-459d-b42f-5bfbe902b399)
+
+# 注意力机制计算过程
+
+输入Query、Key、Value
+
+阶段一
+
+根据Query和Key计算两者之间的相关性或相似性（常见方法点积、余弦相似度，MLP网络），得到注意力得分；
+
+![image](https://github.com/user-attachments/assets/78f56aa7-c013-4189-b6f6-96d18c02be05)
+
+阶段二
+
+对注意力得分进行缩放scale（除以维度的根号），再softmax函数，一方面可以进行归一化，将原始计算分值整理成所有元素权重之和为1的概率分布；另一方面也可以通过softmax的内在机制更加突出重要元素的权重。一般采用如下公式计算：
+
+![image](https://github.com/user-attachments/assets/c9cfb5aa-7a42-4301-ac99-91c4b55ba563)
+
+阶段三
+
+根据权重系数对Value值进行加权求和，得到Attention Value（此时的V是具有一些注意力信息的，更重要的信息更关注，不重要的信息被忽视了）
+
+![image](https://github.com/user-attachments/assets/3d117d55-4830-41b2-8e64-4d5eac53ceec)
+
+这三个阶段可以用下图表示：
+
+![image](https://github.com/user-attachments/assets/c597d5ac-03ae-4174-89e1-1733e3c08521)
+
+# 自注意力机制Self-Attention
+
+class SelfAttention(nn.Module):
+    def __init__(self, in_channels):
+        super(SelfAttention, self).__init__()
+        self.query = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.key = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.value = nn.Conv2d(in_channels, in_channels, kernel_size=1)
+        self.gamma = nn.Parameter(torch.zeros(1))
+    def forward(self, x):
+        batch_size, channels, height, width = x.size()
+        query = self.query(x).view(batch_size, -1, height * width).permute(0, 2, 1)  # (B, N, C//8)
+        key = self.key(x).view(batch_size, -1, height * width)  # (B, C//8, N)
+        attention = torch.softmax(torch.bmm(query, key), dim=-1)  # (B, N, N)
+        value = self.value(x).view(batch_size, -1, height * width)  # (B, C, N)
+        out = torch.bmm(value, attention.permute(0, 2, 1))  # (B, C, N)
+        out = out.view(batch_size, channels, height, width)  # Reshape back to input shape
+        out = self.gamma * out + x  # Weighted residual connection
+        return out
+
+# 多头注意力机制模块
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, in_channels, num_heads=4):
+        super(MultiHeadAttention, self).__init__()
+        self.in_channels = in_channels
+        self.num_heads = num_heads
+        self.query = nn.Conv2d(in_channels, in_channels, kernel_size=1)
+        self.key = nn.Conv2d(in_channels, in_channels, kernel_size=1)
+        self.value = nn.Conv2d(in_channels, in_channels, kernel_size=1)
+        self.multihead_attention = nn.MultiheadAttention(embed_dim=in_channels, num_heads=num_heads, batch_first=True)
+        self.gamma = nn.Parameter(torch.zeros(1))
+    def forward(self, x):
+        batch_size, channels, height, width = x.size()
+        # Flatten the spatial dimensions (H, W) into a single sequence dimension
+        x_flat = x.view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
+        query = self.query(x).view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
+        key = self.key(x).view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
+        value = self.value(x).view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
+        # Apply multi-head attention
+        attn_output, _ = self.multihead_attention(query, key, value)  # (B, N, C)
+        attn_output = attn_output.permute(0, 2, 1).view(batch_size, channels, height, width)  # Reshape back
+        # Add residual connection
+        out = self.gamma * attn_output + x
+        return out
+
+# SE注意力机制模块
+
+class SEAttention(nn.Module):
+    def __init__(self, in_channels, reduction=16):
+        super(SEAttention, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)  # 全局平均池化
+        self.fc = nn.Sequential(
+            nn.Linear(in_channels, in_channels // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(in_channels // reduction, in_channels, bias=False),
+            nn.Sigmoid()
+        )
+    def forward(self, x):
+        batch_size, channels, _, _ = x.size()
+        y = self.avg_pool(x).view(batch_size, channels)  # Squeeze操作
+        y = self.fc(y).view(batch_size, channels, 1, 1)  # Excitation操作
+        return x * y  # 通道加权
+
+# 定义CBAM的通道注意力模块
+class ChannelAttention(nn.Module):
+    def __init__(self, in_channels, ratio=16):
+        super(ChannelAttention, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels // ratio, kernel_size=1, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels // ratio, in_channels, kernel_size=1, bias=False)
+        )
+        self.sigmoid = nn.Sigmoid()
+    def forward(self, x):
+        avg_out = self.fc(self.avg_pool(x))
+        max_out = self.fc(self.max_pool(x))
+        out = avg_out + max_out
+        return self.sigmoid(out) * x
+
+class SpatialAttention(nn.Module):
+    def __init__(self, kernel_size=7):
+        super(SpatialAttention, self).__init__()
+        self.conv = nn.Conv2d(2, 1, kernel_size=kernel_size, padding=(kernel_size - 1) // 2, bias=False)
+        self.sigmoid = nn.Sigmoid()
+    def forward(self, x):
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        out = torch.cat([avg_out, max_out], dim=1)
+        out = self.conv(out)
+        return self.sigmoid(out) * x
+
+class CBAM(nn.Module):
+    def __init__(self, in_channels, ratio=16, kernel_size=7):
+        super(CBAM, self).__init__()
+        self.channel_attention = ChannelAttention(in_channels, ratio)
+        self.spatial_attention = SpatialAttention(kernel_size)
+
+# 定义ECA注意力模块
+class ECA(nn.Module):
+    def __init__(self, in_channels, k_size=3):
+        super(ECA, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)  # 全局平均池化
+        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)  # 1D卷积
+        self.sigmoid = nn.Sigmoid()
+    def forward(self, x):
+        # 全局空间信息
+        y = self.avg_pool(x)  # [B, C, 1, 1]
+        # Squeeze操作 + Conv1D
+        y = self.conv(y.squeeze(-1).permute(0, 2, 1))  # [B, 1, C]
+        # 多尺度信息融合 + Sigmoid
+        y = self.sigmoid(y).permute(0, 2, 1).unsqueeze(-1)  # [B, C, 1, 1]
+        # 通道加权
+        return x * y.expand_as(x)
+
+# STN 模块定义
+class STN(nn.Module):
+    def __init__(self, in_channels, input_size=(3, 32, 32)):
+        super(STN, self).__init__()
+
+        self.localization = nn.Sequential(
+            nn.Conv2d(in_channels, 8, kernel_size=3, padding=1),  # 修正输入通道数
+            nn.ReLU(True),
+            nn.MaxPool2d(2, stride=2),
+            nn.Conv2d(8, 10, kernel_size=3, padding=1),
+            nn.ReLU(True),
+            nn.MaxPool2d(2, stride=2)
+        )
+
+        flatten_size = calculate_flatten_size(self, input_size)
+        self.fc_loc = nn.Sequential(
+            nn.Linear(flatten_size, 32),
+            nn.ReLU(True),
+            nn.Linear(32, 6)
+        )
+
+        self.fc_loc[2].weight.data.zero_()
+        self.fc_loc[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
+    def forward(self, x):
+        xs = self.localization(x)
+        xs = xs.view(xs.size(0), -1)
+        theta = self.fc_loc(xs)
+        theta = theta.view(-1, 2, 3)
+        grid = F.affine_grid(theta, x.size(), align_corners=False)
+        x = F.grid_sample(x, grid, align_corners=False)
+        return x
+
 # Attention
 
 # CNN.py
