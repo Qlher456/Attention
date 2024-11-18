@@ -37,156 +37,32 @@
 
 # 自注意力机制Self-Attention
 
-class SelfAttention(nn.Module):
-    def __init__(self, in_channels):
-        super(SelfAttention, self).__init__()
-        self.query = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
-        self.key = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
-        self.value = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        self.gamma = nn.Parameter(torch.zeros(1))
-    def forward(self, x):
-        batch_size, channels, height, width = x.size()
-        query = self.query(x).view(batch_size, -1, height * width).permute(0, 2, 1)  # (B, N, C//8)
-        key = self.key(x).view(batch_size, -1, height * width)  # (B, C//8, N)
-        attention = torch.softmax(torch.bmm(query, key), dim=-1)  # (B, N, N)
-        value = self.value(x).view(batch_size, -1, height * width)  # (B, C, N)
-        out = torch.bmm(value, attention.permute(0, 2, 1))  # (B, C, N)
-        out = out.view(batch_size, channels, height, width)  # Reshape back to input shape
-        out = self.gamma * out + x  # Weighted residual connection
-        return out
+![image](https://github.com/user-attachments/assets/4dffd5d7-e179-426d-a20c-c1100cf9c901)
 
 # 多头注意力机制模块
 
-class MultiHeadAttention(nn.Module):
-    def __init__(self, in_channels, num_heads=4):
-        super(MultiHeadAttention, self).__init__()
-        self.in_channels = in_channels
-        self.num_heads = num_heads
-        self.query = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        self.key = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        self.value = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        self.multihead_attention = nn.MultiheadAttention(embed_dim=in_channels, num_heads=num_heads, batch_first=True)
-        self.gamma = nn.Parameter(torch.zeros(1))
-    def forward(self, x):
-        batch_size, channels, height, width = x.size()
-        # Flatten the spatial dimensions (H, W) into a single sequence dimension
-        x_flat = x.view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
-        query = self.query(x).view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
-        key = self.key(x).view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
-        value = self.value(x).view(batch_size, channels, -1).permute(0, 2, 1)  # (B, N, C)
-        # Apply multi-head attention
-        attn_output, _ = self.multihead_attention(query, key, value)  # (B, N, C)
-        attn_output = attn_output.permute(0, 2, 1).view(batch_size, channels, height, width)  # Reshape back
-        # Add residual connection
-        out = self.gamma * attn_output + x
-        return out
+![image](https://github.com/user-attachments/assets/4737143c-1813-4757-91e4-e661d81c5579)
 
 # SE注意力机制模块
 
-class SEAttention(nn.Module):
-    def __init__(self, in_channels, reduction=16):
-        super(SEAttention, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)  # 全局平均池化
-        self.fc = nn.Sequential(
-            nn.Linear(in_channels, in_channels // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(in_channels // reduction, in_channels, bias=False),
-            nn.Sigmoid()
-        )
-    def forward(self, x):
-        batch_size, channels, _, _ = x.size()
-        y = self.avg_pool(x).view(batch_size, channels)  # Squeeze操作
-        y = self.fc(y).view(batch_size, channels, 1, 1)  # Excitation操作
-        return x * y  # 通道加权
+![image](https://github.com/user-attachments/assets/e83d6aae-0d13-4e41-adfb-f5e295673dd3)
 
 # 定义CBAM的通道注意力模块
-class ChannelAttention(nn.Module):
-    def __init__(self, in_channels, ratio=16):
-        super(ChannelAttention, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.max_pool = nn.AdaptiveMaxPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels // ratio, kernel_size=1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels // ratio, in_channels, kernel_size=1, bias=False)
-        )
-        self.sigmoid = nn.Sigmoid()
-    def forward(self, x):
-        avg_out = self.fc(self.avg_pool(x))
-        max_out = self.fc(self.max_pool(x))
-        out = avg_out + max_out
-        return self.sigmoid(out) * x
 
-class SpatialAttention(nn.Module):
-    def __init__(self, kernel_size=7):
-        super(SpatialAttention, self).__init__()
-        self.conv = nn.Conv2d(2, 1, kernel_size=kernel_size, padding=(kernel_size - 1) // 2, bias=False)
-        self.sigmoid = nn.Sigmoid()
-    def forward(self, x):
-        avg_out = torch.mean(x, dim=1, keepdim=True)
-        max_out, _ = torch.max(x, dim=1, keepdim=True)
-        out = torch.cat([avg_out, max_out], dim=1)
-        out = self.conv(out)
-        return self.sigmoid(out) * x
-
-class CBAM(nn.Module):
-    def __init__(self, in_channels, ratio=16, kernel_size=7):
-        super(CBAM, self).__init__()
-        self.channel_attention = ChannelAttention(in_channels, ratio)
-        self.spatial_attention = SpatialAttention(kernel_size)
+![image](https://github.com/user-attachments/assets/e35b3469-9248-4ee8-a9dd-833e59a0769c)
 
 # 定义ECA注意力模块
-class ECA(nn.Module):
-    def __init__(self, in_channels, k_size=3):
-        super(ECA, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)  # 全局平均池化
-        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)  # 1D卷积
-        self.sigmoid = nn.Sigmoid()
-    def forward(self, x):
-        # 全局空间信息
-        y = self.avg_pool(x)  # [B, C, 1, 1]
-        # Squeeze操作 + Conv1D
-        y = self.conv(y.squeeze(-1).permute(0, 2, 1))  # [B, 1, C]
-        # 多尺度信息融合 + Sigmoid
-        y = self.sigmoid(y).permute(0, 2, 1).unsqueeze(-1)  # [B, C, 1, 1]
-        # 通道加权
-        return x * y.expand_as(x)
 
-# STN 模块定义
-class STN(nn.Module):
-    def __init__(self, in_channels, input_size=(3, 32, 32)):
-        super(STN, self).__init__()
+![image](https://github.com/user-attachments/assets/fe23d5da-b9aa-4ede-8e28-99ee20be175a)
 
-        self.localization = nn.Sequential(
-            nn.Conv2d(in_channels, 8, kernel_size=3, padding=1),  # 修正输入通道数
-            nn.ReLU(True),
-            nn.MaxPool2d(2, stride=2),
-            nn.Conv2d(8, 10, kernel_size=3, padding=1),
-            nn.ReLU(True),
-            nn.MaxPool2d(2, stride=2)
-        )
+# STN 注意力机制
 
-        flatten_size = calculate_flatten_size(self, input_size)
-        self.fc_loc = nn.Sequential(
-            nn.Linear(flatten_size, 32),
-            nn.ReLU(True),
-            nn.Linear(32, 6)
-        )
+![image](https://github.com/user-attachments/assets/95cc5ebd-6be7-4d6b-99eb-3a6f89ed5f06)
 
-        self.fc_loc[2].weight.data.zero_()
-        self.fc_loc[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
-    def forward(self, x):
-        xs = self.localization(x)
-        xs = xs.view(xs.size(0), -1)
-        theta = self.fc_loc(xs)
-        theta = theta.view(-1, 2, 3)
-        grid = F.affine_grid(theta, x.size(), align_corners=False)
-        x = F.grid_sample(x, grid, align_corners=False)
-        return x
-
-# Attention
+# 各Attention模型训练
 
 # CNN.py
+
 CNN.py是使用基础cnn网络在Cifar10数据集上迭代100次的文件
 
 使用ACC评价标准和交叉熵损失函数
