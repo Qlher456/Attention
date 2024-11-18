@@ -177,3 +177,30 @@ Epoch [100/100] Train Loss: 0.1146, Train Acc: 95.96% Test Loss: 1.9777, Test Ac
 
 ![image](https://github.com/user-attachments/assets/6d03c66b-ebbe-4a9c-aad7-5ff8be4ba7d8)
 
+# STN-Attention.py
+
+STN注意力机制
+
+Epoch [1/100] Train Loss: 1.2672, Train Acc: 54.43% Test Loss: 1.0409, Test Acc: 63.29%
+
+Epoch [10/100] Train Loss: 0.0806, Train Acc: 97.30% Test Loss: 1.4901, Test Acc: 73.06%
+
+Epoch [20/100] Train Loss: 0.0411, Train Acc: 98.64% Test Loss: 2.2554, Test Acc: 71.88%
+
+Epoch [30/100] Train Loss: 0.0309, Train Acc: 99.01% Test Loss: 2.7649, Test Acc: 72.40%
+
+Epoch [40/100] Train Loss: 0.0322, Train Acc: 98.98% Test Loss: 3.0436, Test Acc: 72.20%
+
+Epoch [50/100] Train Loss: 0.0248, Train Acc: 99.27% Test Loss: 3.3176, Test Acc: 71.79%
+
+Epoch [60/100] Train Loss: 0.0266, Train Acc: 99.31% Test Loss: 3.9003, Test Acc: 71.77%
+
+Epoch [70/100] Train Loss: 0.0264, Train Acc: 99.33% Test Loss: 4.3785, Test Acc: 71.97%
+
+Epoch [80/100] Train Loss: 0.0156, Train Acc: 99.54% Test Loss: 4.4777, Test Acc: 72.36%
+
+Epoch [90/100] Train Loss: 0.0244, Train Acc: 99.46% Test Loss: 5.4286, Test Acc: 70.88%
+
+Epoch [100/100] Train Loss: 0.0244, Train Acc: 99.45% Test Loss: 5.3992, Test Acc: 71.31%
+
+![image](https://github.com/user-attachments/assets/1940d67e-fbba-4ebf-9e21-2bd15298b923)
